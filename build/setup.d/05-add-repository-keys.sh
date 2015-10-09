@@ -26,3 +26,6 @@ gpg --keyserver pgp.mit.edu --recv-keys C43C79AD && gpg -a --export C43C79AD | a
 
 # Docker key Yandex
 wget -qO- http://mirror.yandex.ru/mirrors/docker/DOCKER-GPG-KEY | apt-key add -
+
+# Key for Treasuredata repo (for fluentd packages)
+wget -qO- https://packages.treasuredata.com/GPG-KEY-td-agent | apt-key add -

@@ -7,6 +7,7 @@ iproute
 libruby1.9.1
 libyaml-0-2
 linux-image-extra-$(uname -r)
+td-agent
 logentries
 logentries-daemon
 docker-engine=1.8.2-0~trusty
