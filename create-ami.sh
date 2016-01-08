@@ -17,6 +17,12 @@ function finally() {
 }
 trap finally EXIT TERM SEGV ABRT QUIT INT
 
+function notify_hipchat() {
+    if [ "$hipchat_notification_enabled" = 'true' ]; then
+        echo "Sending HipChat notification..."
+        curl -s -S -X POST -H "Content-Type: application/json" -d "{\"message\":\"$hipchat_message\"}" "https://${hipchat_server_address}/v2/room/${hipchat_room_id}/notification?auth_token=${hipchat_auth_token}"
+    fi
+}
 
 # default description (may be overriden by config file)
 ami_description="STUPS Taupage AMI with Docker runtime"
@@ -30,17 +36,18 @@ else
     DRY_RUN=false
 fi
 
-if [ -z "$1" ] || [ ! -r "$1" ]; then
-    echo "Usage:  $0 [--dry-run] <config-file>" >&2
+if [ -z "$1" ] || [ ! -r "$1" ] || [ -z "$2" ]; then
+    echo "Usage:  $0 [--dry-run] <config-file> <taupage-version>" >&2
     exit 1
 fi
 CONFIG_FILE=./$1
+TAUPAGE_VERSION=$2
 
 # load configuration file
 source $CONFIG_FILE
 
 # reset path
-cd $(dirname $0)
+#cd $(dirname $0)
 
 if [ ! -f "$secret_dir/secret-vars.sh" ]; then
     echo "Missing secret-vars.sh in secret dir" >&2
@@ -64,7 +71,7 @@ result=$(aws ec2 run-instances \
 instanceid=$(echo $result | jq .Instances\[0\].InstanceId | sed 's/"//g')
 echo "Instance: $instanceid"
 
-aws ec2 create-tags --region $region --resources $instanceid --tags "Key=Name,Value=Taupage AMI Builder"
+aws ec2 create-tags --region $region --resources $instanceid --tags "Key=Name,Value=Taupage AMI Builder, Key=Version,Value=$TAUPAGE_VERSION"
 
 while [ true ]; do
     result=$(aws ec2 describe-instances --region $region --instance-id $instanceid --output json)
@@ -90,7 +97,6 @@ while [ true ]; do
     if [ $alive -eq 0 ]; then
         break
     fi
-
     sleep 2
 done
 
@@ -101,13 +107,13 @@ fi
 
 # upload files
 echo "Uploading runtime/* files to server..."
-tar c -C runtime --exclude=__pycache__ . | ssh $ssh_args ubuntu@$ip sudo tar x --no-same-owner --no-overwrite-dir -C /
+tar c -C $(dirname $0)/runtime --exclude=__pycache__ . | ssh $ssh_args ubuntu@$ip sudo tar x --no-same-owner --no-overwrite-dir -C /
 
 echo "Set link to old taupage file"
 ssh $ssh_args ubuntu@$ip sudo ln -s /meta/taupage.yaml /etc/taupage.yaml
 
 echo "Uploading build/* files to server..."
-tar c build | ssh $ssh_args ubuntu@$ip sudo tar x --no-same-owner -C /tmp
+tar c -C $(dirname $0) build  | ssh $ssh_args ubuntu@$ip sudo tar x --no-same-owner -C /tmp
 
 echo "Uploading secret/* files to server..."
 tar c -C $secret_dir . | ssh $ssh_args ubuntu@$ip sudo tar x --no-same-owner -C /tmp/build
@@ -163,6 +169,8 @@ while [ true ]; do
         echo "Image creation failed."
         exit 1
     elif [ "$state" = "available" ]; then
+        # set AMI Version Tag
+        aws ec2 create-tags --region $region --resources $imageid --tags Key=Version,Value=$TAUPAGE_VERSION
         break
     fi
 
@@ -170,14 +178,17 @@ while [ true ]; do
 done
 
 # run tests
-./test.sh $CONFIG_FILE $imageid
-# Early exit if tests failed
-EXITCODE_TESTS=$?
-if [ $EXITCODE_TESTS -ne 0 ]; then
-    echo "!!! AMI $ami_name ($imageid) create failed "
-    exit $EXITCODE_TESTS
+if [ "$disable_tests" = true ]; then
+    echo "skipping tests as DISABLE_TESTS set to TRUE"
+else
+    ./test.sh $CONFIG_FILE $imageid
+    # Early exit if tests failed
+    EXITCODE_TESTS=$?
+    if [ $EXITCODE_TESTS -ne 0 ]; then
+        echo "!!! AMI $ami_name ($imageid) create failed "
+        exit $EXITCODE_TESTS
+    fi
 fi
-
 
 # TODO exit if git is dirty
 rm -f ./list_of_new_amis
@@ -188,12 +199,17 @@ echo "Attaching launch permission to accounts: $accounts"
 commit_id=$( git rev-parse HEAD )
 # Tag AMI with commit id
 aws ec2 create-tags --region $region --resources $imageid --tags Key=CommitID,Value=$commit_id
+echo "AMI $ami_name ($imageid) successfully created."
 
 # share ami
-for account in $accounts; do
-    echo "Sharing AMI with account $account ..."
-    aws ec2 modify-image-attribute --region $region --image-id $imageid --launch-permission "{\"Add\":[{\"UserId\":\"$account\"}]}"
-done
+if [ "$disable_ami_sharing" = true ]; then
+    echo "skipping AMI sharing as disable_ami_sharing set to true"
+else
+    for account in $accounts; do
+        echo "Sharing AMI with account $account ..."
+        aws ec2 modify-image-attribute --region $region --image-id $imageid --launch-permission "{\"Add\":[{\"UserId\":\"$account\"}]}"
+    done
+fi
 
 for target_region in $copy_regions; do
     echo "Copying AMI to region $target_region ..."
@@ -212,19 +228,21 @@ for target_region in $copy_regions; do
         elif [ "$state" = "available" ]; then
             break
         fi
-
         sleep 10
     done
     # Tag the copied AMI in the target region
     aws ec2 create-tags --region $target_region --resources $target_imageid --tags Key=CommitID,Value=$commit_id
+    echo "$target_region,$target_imageid" >> ./list_of_new_amis
 
-    for account in $accounts; do
-        echo "Sharing AMI with account $account ..."
-        aws ec2 modify-image-attribute --region $target_region --image-id $target_imageid --launch-permission "{\"Add\":[{\"UserId\":\"$account\"}]}"
-
-        #write ami and region to file for later parsing
-        echo "$target_region,$target_imageid" >> ./list_of_new_amis
-    done
+    if [ "$disable_ami_sharing" = true ]; then
+        echo "skipping AMI sharing as disable_ami_sharing set to true"
+    else
+        for account in $accounts; do
+            echo "Sharing AMI with account $account ..."
+            aws ec2 modify-image-attribute --region $target_region --image-id $target_imageid --launch-permission "{\"Add\":[{\"UserId\":\"$account\"}]}"
+            #write ami and region to file for later parsing
+        done
+    fi
 done
 #git add new release tag
 # git tag $ami_name
@@ -234,7 +252,4 @@ done
 echo "AMI $ami_name ($imageid) successfully created and shared."
 
 # HipChat notification
-if [ "$hipchat_notification_enabled" = 'true' ]; then
-    echo "Sending HipChat notification..."
-    curl -s -S -X POST -H "Content-Type: application/json" -d "{\"message\":\"$hipchat_message\"}" "https://${hipchat_server_address}/v2/room/${hipchat_room_id}/notification?auth_token=${hipchat_auth_token}"
-fi
+notify_hipchat()

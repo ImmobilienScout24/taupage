@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # please keep this list sorted!
 # we need to install linux-image-extra-.. to get aufs!
 # see https://github.com/zalando-stups/taupage/issues/84
@@ -28,6 +30,7 @@ unzip
 libwww-perl
 libdatetime-perl
 libswitch-perl
+jq
 "
 
 echo "Installing packages..."

@@ -1,5 +1,6 @@
-# These packages will be deleted in order to have a PCI DSS compatible image
+#!/bin/bash
 
+# These packages will be deleted in order to have a PCI DSS compatible image
 pkgs="
 build-essential
 g++
