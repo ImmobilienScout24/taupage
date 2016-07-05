@@ -9,9 +9,7 @@ libyaml-0-2
 linux-image-extra-$(uname -r)
 docker-engine=1.9.1-0~trusty
 mdadm
-newrelic-sysmond
 ntp
-openjdk-7-jre-headless
 python3-pip
 python3-requests
 python3-yaml
@@ -20,12 +18,10 @@ python-setuptools
 rkhunter
 rsyslog-gnutls
 ruby
-scalyr-agent-2
 unhide.rb
 unzip
-libwww-perl
-libdatetime-perl
-libswitch-perl
+apt-transport-https
+ca-certificates
 "
 
 echo "Installing packages..."

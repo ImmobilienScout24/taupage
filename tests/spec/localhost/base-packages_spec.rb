@@ -6,15 +6,10 @@ basepackage = [ 'rsyslog-gnutls',
                 'python3-yaml',
                 'python3-pip',
                 'python3-jinja2',
-                'libwww-perl',
-                'libdatetime-perl',
-                'libswitch-perl',
                 'mdadm',
                 'rkhunter',
                 'unhide.rb',
                 'ruby',
-                'scalyr-agent-2',
-                'newrelic-sysmond',
                 'unzip'
               ]
 
