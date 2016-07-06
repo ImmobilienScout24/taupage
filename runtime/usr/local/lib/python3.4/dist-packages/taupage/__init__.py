@@ -3,10 +3,9 @@ Taupage base module with helper functions
 '''
 
 import logging
+
 import yaml
-
 from boto.utils import get_instance_metadata
-
 
 TAUPAGE_CONFIG_PATH = '/meta/taupage.yaml'
 CREDENTIALS_DIR = '/meta/credentials'
@@ -125,6 +124,7 @@ def get_config(filename=TAUPAGE_CONFIG_PATH):
 
 def get_token(config: dict, token_name: str, scopes: list):
     return
+
 
 def get_boot_time():
     with open('/run/taupage-init-ran/date') as fd:

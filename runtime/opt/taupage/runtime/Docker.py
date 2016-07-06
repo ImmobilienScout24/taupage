@@ -5,19 +5,20 @@ Docker runtime script: load /meta/taupage.yaml and run the Docker container
 
 import argparse
 import base64
-import boto.kms
-import boto.utils
+import glob
 import logging
 import pwd
-import requests
-import sys
-import subprocess
-import time
-import yaml
 import shutil
-import glob
+import subprocess
+import sys
+import time
 
-from taupage import is_sensitive_key, CREDENTIALS_DIR, get_or, get_default_port, get_token
+import boto.kms
+import boto.utils
+import requests
+import yaml
+
+from taupage import is_sensitive_key, CREDENTIALS_DIR, get_or, get_default_port
 
 AWS_KMS_PREFIX = 'aws:kms:'
 
@@ -191,6 +192,7 @@ def run_docker(cmd, dry_run):
     logging.info('Starting Docker container: {}'.format(mask_command(cmd)))
     if not args.dry_run:
         max_tries = 3
+        out = ""
         for i in range(max_tries):
             try:
                 out = subprocess.check_output(cmd)
@@ -253,6 +255,7 @@ def main(args):
             out = subprocess.check_output(pull_cmd)
         except Exception as e:
             logging.error('Docker pull from ecr failed: %s', mask_command(str(e).split(' ')))
+            logging.error(out)
 
     if config.get('pull_private'):
         logging.info(config['pull_private'])
@@ -264,6 +267,7 @@ def main(args):
             out = subprocess.check_output(pull_cmd)
         except Exception as e:
             logging.error('Docker pull from private registry failed: %s', mask_command(str(e).split(' ')))
+            logging.error(out)
 
     registry = extract_registry(source)
 

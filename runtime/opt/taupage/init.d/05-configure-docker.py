@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import logging
-import sys
-import os
 import json
+import logging
+import os
+import sys
 
 from taupage import configure_logging, get_config
 
@@ -48,16 +48,16 @@ def main():
             os.makedirs(directory)
         path = os.path.expanduser('~/.docker/config.json')
         if os.path.exists(path):
-            #load
+            # load
             data = json.loads(open(path).read())
             existing = config.get('dockercfg', {})
-            #merge
+            # merge
             data['auths'].update(existing)
-            #write
+            # write
             write_file(path, json.dumps(data))
         else:
-            write_file(path, json.dumps( {
-                'auths' : config.get('dockercfg', {})
+            write_file(path, json.dumps({
+                'auths': config.get('dockercfg', {})
             }))
 
         logging.info('Successfully placed dockercfg')
