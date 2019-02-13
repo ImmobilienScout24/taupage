@@ -7,7 +7,7 @@ iproute
 libruby1.9.1
 libyaml-0-2
 linux-image-extra-$(uname -r)
-docker-engine
+docker-ce
 mdadm
 newrelic-infra
 ntp
@@ -30,4 +30,4 @@ libswitch-perl
 
 echo "Installing packages..."
 
-apt-get install -y -q --no-install-recommends -o Dpkg::Options::="--force-confold" $pkgs >>install.log
+apt-get update -y && apt-get install -y -q --no-install-recommends -o Dpkg::Options::="--force-confold" $pkgs >>install.log
