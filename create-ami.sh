@@ -118,6 +118,24 @@ fi
 
 ssh $ssh_args ubuntu@$ip find /tmp/build
 
+# execute upgrade script
+echo "Executing upgrade script..."
+ssh $ssh_args ubuntu@$ip sudo /tmp/build/upgrade.sh
+
+# # reboot instance so that kernel upgrades can take effect
+echo "Rebooting instance"
+aws ec2 reboot-instances --region $region --instance-ids $instanceid
+sleep 60 
+
+echo "Uploading runtime/* files to server..."
+tar cv -C runtime --exclude=__pycache__ . | ssh $ssh_args ubuntu@$ip sudo tar xv --no-same-owner --no-overwrite-dir -C /
+
+echo "Uploading build/* files to server..."
+tar cv build | ssh $ssh_args ubuntu@$ip sudo tar xv --no-same-owner -C /tmp
+
+echo "Uploading secret/* files to server..."
+tar cv -C $secret_dir . | ssh $ssh_args ubuntu@$ip sudo tar xv --no-same-owner -C /tmp/build
+
 # execute setup script
 echo "Executing setup script..."
 ssh $ssh_args ubuntu@$ip sudo /tmp/build/setup.sh
