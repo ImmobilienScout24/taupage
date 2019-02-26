@@ -90,7 +90,7 @@ while [ true ]; do
     echo "Logging in with ubuntu user..."
 
     set +e
-    ssh $ssh_args ubuntu@$ip echo >/dev/null
+    ssh $ssh_args is24@$ip echo >/dev/null
     alive=$?
     set -e
 
@@ -123,9 +123,9 @@ if [[ $OSTYPE == darwin* ]]; then
 fi
 
 echo "Uploading tests and scripts files to server..."
-ssh $ssh_args ubuntu@$ip sudo mkdir -p /tmp/{tests,scripts}
-tar c -C tests . | ssh $ssh_args ubuntu@$ip sudo tar x --no-same-owner --no-overwrite-dir -C /tmp/tests/
-tar c -C scripts . | ssh $ssh_args ubuntu@$ip sudo tar x --no-same-owner --no-overwrite-dir -C /tmp/scripts/
+ssh $ssh_args is24@$ip sudo mkdir -p /tmp/{tests,scripts}
+tar c -C tests . | ssh $ssh_args is24@$ip sudo tar x --no-same-owner --no-overwrite-dir -C /tmp/tests/
+tar c -C scripts . | ssh $ssh_args is24@$ip sudo tar x --no-same-owner --no-overwrite-dir -C /tmp/scripts/
 
 # now wait until HTTP works
 set +e
@@ -159,8 +159,8 @@ cat /var/log/syslog
 
 # run ServerSpec tests
 echo "Will not attempt to run the serverspec tests"
-ssh $ssh_args ubuntu@$ip sudo chmod +x /tmp/scripts/serverspec.sh
-ssh $ssh_args ubuntu@$ip sudo /tmp/scripts/serverspec.sh
+ssh $ssh_args is24@$ip sudo chmod +x /tmp/scripts/serverspec.sh
+ssh $ssh_args is24@$ip sudo /tmp/scripts/serverspec.sh
 
 result_test=$?
 

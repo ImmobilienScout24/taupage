@@ -12,7 +12,7 @@ set -x
 
 cd $(dirname $0)
 export BUILD_DIR=$(pwd)
-for script in $(ls setup.d | sort); do
+for script in $(ls -p setup.d | grep -v / | sort); do
     cd $BUILD_DIR
     . setup.d/$script
 done

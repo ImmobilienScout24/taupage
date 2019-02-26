@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe package('docker-engine') do
+describe package('docker-ce') do
   it { should be_installed }
 end
 
@@ -16,7 +16,7 @@ end
 
 describe command('docker info') do
   # make sure the aufs module can be loaded and is used by Docker
-  its(:stdout) { should match /Storage Driver: devicemapper/ }
+  its(:stdout) { should match /Storage Driver: overlay2/ }
 end
 
 #describe file('/root/.dockercfg') do
