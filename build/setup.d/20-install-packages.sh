@@ -6,7 +6,7 @@ auditd
 iproute
 libruby1.9.1
 libyaml-0-2
-linux-image-extra-$(uname -r)
+linux-modules-extra-$(uname -r)
 docker-ce
 mdadm
 newrelic-infra
